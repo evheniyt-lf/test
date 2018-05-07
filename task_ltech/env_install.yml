@@ -1,0 +1,96 @@
+---
+- hosts: devsandbox
+  remote_user: vagrant
+
+  environment:
+    LC_CTYPE: en_US.UTF-8
+    LC_ALL: en_US.UTF-8
+
+  vars:
+    custom_packages:
+      - { url: "http://nginx.org/download/nginx-1.10.3.tar.gz", src_file: "nginx-1.10.3.tar.gz" } #nginx 1.10.3
+      # - { url: "https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz", src_file: "mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz" } #mysql 5.7.22
+
+  tasks:
+    - name: "Install packages"
+      apt:
+        name: "{{ item.package }}"
+        state: "{{ item.state }}"
+      with_items:
+        - { package: php7.0, state: present }
+        - { package: php-xdebug, state: present }
+        - { package: libpcre3, state: present }
+        - { package: libpcre3-dev, state: present }
+        - { package: zlib1g-dev, state: present }
+        - { package: apache2, state: absent }
+      become: yes
+      tags:
+        - packages
+
+    - name: "Download specific package version"
+      get_url:
+        url: "{{ item.url }}"
+        dest: "/tmp"
+      with_items: "{{ custom_packages }}"
+      tags:
+        - specific_version
+        - downloads
+
+    - name: "Extract files from archives"
+      unarchive:
+        src: "/tmp/{{ item.src_file }}"
+        dest: "/tmp/"
+        remote_src: yes
+      with_items: "{{ custom_packages }}"
+      tags:
+        - specific_version
+
+    - name: "Configure nginx makefile"
+      shell: "./configure --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --pid-path=/run/nginx.pid"
+      args:
+        chdir: "/tmp/nginx-1.10.3"
+      tags:
+        - nginx_install
+        - specific_version
+
+    - name: "Install packages from source"
+      make:
+        chdir: "/tmp/nginx-1.10.3"
+        target: install
+      become: yes
+      when:
+      tags:
+        - nginx_install
+        - specific_version
+
+    - name: "Add service to systemctl"
+      copy:
+        src: "templates/nginx.service"
+        dest: "/lib/systemd/system/nginx.service"
+      become: yes
+      tags:
+        - nginx_install
+        - systemctl
+
+    - name: "Make a symlink"
+      file:
+        src: "/lib/systemd/system/nginx.service"
+        dest: "/etc/systemd/system/nginx.service"
+        state: link
+        force: yes
+      become: yes
+      register: reload_systemctl
+      tags:
+        - nginx_install
+        - systemctl
+
+    - name: "Just force systemd to reread configs"
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: nginx.service
+      become: yes
+      when: reload_systemctl.changed
+      tags:
+        - nginx_install
+        - systemctl
