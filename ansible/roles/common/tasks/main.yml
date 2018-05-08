@@ -1,0 +1,45 @@
+environment:
+  LC_CTYPE: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+
+- name: Add repo
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  with_items: "{{ apt_repo }}"
+  become: yes
+  notify: Update apt-cache
+  tags:
+    - packages
+
+- name: Add keys
+  apt_key:
+    keyserver: "{{ item.keyserver | default(omit) }}"
+    id: "{{ item.key | default(omit) }}"
+    url: "{{ item.url | default(omit) }}"
+  with_items: "{{ gpg_keys }}"
+  become: yes
+  notify: Update apt-cache
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- name: Install packages
+  apt:
+    name: "{{ item }}"
+    allow_unauthenticated: yes
+    state: present
+  with_items: "{{ apt_packages }}"
+  become: yes
+  tags:
+    - packages
+
+- name: Install sublime_remote
+  get_url:
+    url: https://raw.github.com/aurora/rmate/master/rmate
+    dest: /usr/local/bin/subl
+    mode: 0755
+  become: yes
+  when: sublime_remote
+  tags:
+    - sublime
