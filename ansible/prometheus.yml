@@ -1,0 +1,14 @@
+---
+- hosts: '{{ target | default("prometheus") }}'
+  remote_user: "{{ vagrant_remote_user }}"
+  roles:
+    - common
+    - docker
+
+  vars:
+    sublime_remote: yes
+
+  environment:
+    LC_CTYPE: en_US.UTF-8
+    LC_ALL: en_US.UTF-8
+

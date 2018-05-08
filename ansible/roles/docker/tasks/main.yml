@@ -1,0 +1,72 @@
+---
+- name: "Install dependencies"
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common
+    - vim
+  tags:
+    - docker_install
+  become: true
+
+- name: "Define release variable in task"
+  shell: . /etc/os-release; echo "$ID"
+  register: url
+  tags:
+    - docker_install
+
+- name: "Add Dockers official GPG key"
+  apt_key:
+    url: https://download.docker.com/linux/{{ url.stdout }}/gpg
+    state: present
+  become: true
+  tags:
+    - docker_install
+
+- name: "Add Docker’s repository"
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/{{ url.stdout }} {{ ansible_distribution_release }} stable
+    state: present
+  become: true
+  tags:
+    - docker_install
+
+- name: "Install docker"
+  apt:
+    name: docker-ce
+    state: present
+  become: true
+  tags:
+    - docker_install
+
+- name: "Add user to docker group"
+  user:
+    name: "{{ vagrant_remote_user }}"
+    groups: docker
+    append: yes
+  become: true
+  tags:
+    - docker_install
+
+- name: 'Install pip'
+  apt:
+    name: python-pip
+    state: present
+  become: true
+  tags:
+    - docker_install
+    - py_env
+
+- name: "Install docker-py"
+  pip:
+    name: docker-py
+    state: present
+  become: true
+  tags:
+    - docker_install
+    - py_env
