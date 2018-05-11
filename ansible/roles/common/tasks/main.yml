@@ -40,3 +40,24 @@
   when: sublime_remote
   tags:
     - sublime
+
+- name: Process templates
+  template:
+    src: "{{ item.template }}"
+    dest: "{{ item.dest }}"
+  become: yes
+  with_items: "{{ template_files_config }}"
+  register: templates_config
+  tags:
+    - configs
+
+- name: Create directories
+  file:
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
+    owner: "{{ item.owner | default(omit) }}"
+    path: "{{ item.path }}"
+    recurse: "{{ item.recurse | default('no') }}"
+    state: "{{ item.state | default('file') }}"
+  with_items: "{{ create_directories }}"
+  become: yes

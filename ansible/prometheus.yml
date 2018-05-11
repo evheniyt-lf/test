@@ -7,6 +7,30 @@
 
   vars:
     sublime_remote: yes
+    apt_packages:
+      - curl
+      - vim
+    template_files_config:
+      - { template: prometheus.yml.j2, dest: /etc/prometheus/prometheus.yml, restart_docker: prometheus }
+    create_directories:
+      - { path: /mnt/lib/grafana, owner: '472', group: '472', state: directory }
+      - { path: /mnt/log/grafana, owner: root, group: root, state: directory }
+    docker_containers_config:
+      - name: "prometheus"
+        image: "prom/prometheus"
+        state: "started"
+        volumes: "/etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+        ports: "9090:9090"
+      - name: "grafana"
+        image: "grafana/grafana"
+        state: "started"
+        volumes:
+          # - "/etc/grafana:/etc/grafana"
+          - "/mnt/lib/grafana:/var/lib/grafana"
+          - "/mnt/log/grafana:/var/log/grafana"
+        ports: "3000:3000"
+        links:
+          - "prometheus:prometheus"
 
   environment:
     LC_CTYPE: en_US.UTF-8

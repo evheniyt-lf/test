@@ -70,3 +70,39 @@
   tags:
     - docker_install
     - py_env
+
+- name: debug
+  debug:
+    msg: "{{ docker_containers_config }}"
+  tags:
+    - debug
+
+- name: "Start containers"
+  docker_container:
+    name: "{{ item.name }}"
+    image: "{{ item.image }}"
+    state: "{{ item.state | default('started') }}"
+    restart: "{{ item.restart | default('no') }}"
+    restart_policy: "{{ item.restart_policy | default('always') }}"
+    network_mode: "{{ item.network_mode | default(omit) }}"
+    log_driver: "{{ item.log_driver | default(omit) }}"
+    volumes: "{{ item.volumes | default(omit) }}"
+    ports: "{{ item.ports | default(omit) }}"
+    devices: "{{ item.devices | default(omit) }}"
+    links: "{{ item.links | default(omit) }}"
+    env: "{{ item.env | default(omit) }}"
+    capabilities: "{{ item.capabilities | default(omit) }}"
+    security_opts: "{{ item.security_opts | default(omit) }}"
+    command: "{{ item.command | default(omit) }}"
+  with_items: "{{ docker_containers_config | default([]) }}"
+  become: yes
+  tags:
+    - container_start
+
+- name: "Restart containers"
+  docker_container:
+    name: "{{ item.restart_docker }}"
+    state: "started"
+    restart: yes
+  with_items: "{{ template_files_config }}"
+  when: templates_config.changed
