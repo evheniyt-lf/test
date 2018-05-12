@@ -25,7 +25,6 @@
         image: "grafana/grafana"
         state: "started"
         volumes:
-          # - "/etc/grafana:/etc/grafana"
           - "/mnt/lib/grafana:/var/lib/grafana"
           - "/mnt/log/grafana:/var/log/grafana"
         ports: "3000:3000"
